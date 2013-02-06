@@ -2,6 +2,9 @@ package Crypt::MagicSignatures::Key;
 use strict;
 use warnings;
 use bytes;
+
+use v5.10.1;
+
 use Carp qw/carp croak/;
 use Digest::SHA qw/sha256 sha256_hex/;
 use MIME::Base64 qw(decode_base64 encode_base64);
@@ -13,7 +16,7 @@ use Math::BigInt try => 'GMP,Pari';
 use Exporter 'import';
 our @EXPORT_OK = qw(b64url_encode b64url_decode);
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 our $DEBUG = 0;
 our $GENERATOR;
 
@@ -349,6 +352,41 @@ sub to_string {
 };
 
 
+# Returns the b64 urlsafe encoding of a string
+sub b64url_encode ($;$) {
+  return '' unless $_[0];
+
+  my $v = $_[0];
+
+  utf8::encode $v if utf8::is_utf8 $v;
+  $v = encode_base64($v, '');
+  $v =~ tr{+/\t-\x0d }{-_}d;
+
+  # Trim padding or not
+  $v =~ s/\=+$// unless (defined $_[1] ? $_[1] : 1);
+
+  return $v;
+};
+
+
+# Returns the b64 urlsafe decoded string
+sub b64url_decode ($) {
+  my $v = shift;
+  return '' unless $v;
+
+  $v =~ tr{-_}{+/};
+
+  my $padding;
+
+  # Add padding
+  if ($padding = (length($v) % 4)) {
+    $v .= chr(61) x (4 - $padding);
+  };
+
+  return decode_base64($v);
+};
+
+
 # Get octet length of n
 sub _emLen {
   my $self = shift;
@@ -398,13 +436,16 @@ sub _verify_emsa_pkcs1_v1_5 {
 
   my $s = _os2ip($S);
   my $m = _rsavp1($K, $s) or return;
-  my $EM_TEST = _emsa_encode($M, $k) or return;
+  my $EM_1 = _emsa_encode($M, $k) or return;
+  my $EM_2 = _i2osp($m, $k);
 
-  # Signature is valid
-  return 1 if _i2osp($m, $k) eq $EM_TEST;
+  # Secure signature comparation for timing attacks
+  # Based on Mojo::Util::secure_compare
+  return undef if (my $l_em1 = length $EM_1) != length $EM_2;
 
-  # No success
-  return undef;
+  my $r = 0;
+  $r |= ord(substr $EM_1, $_) ^ ord(substr $EM_2, $_) for 0 .. $l_em1 - 1;
+  return $r == 0;
 };
 
 
@@ -576,41 +617,6 @@ sub _hex_to_b64url {
 };
 
 
-# Returns the b64 urlsafe encoding of a string
-sub b64url_encode ($;$) {
-  return '' unless $_[0];
-
-  my $v = $_[0];
-
-  utf8::encode $v if utf8::is_utf8 $v;
-  $v = encode_base64($v, '');
-  $v =~ tr{+/\t-\x0d }{-_}d;
-
-  # Trim padding or not
-  $v =~ s/\=+$// unless (defined $_[1] ? $_[1] : 1);
-
-  return $v;
-};
-
-
-# Returns the b64 urlsafe decoded string
-sub b64url_decode ($) {
-  my $v = shift;
-  return '' unless $v;
-
-  $v =~ tr{-_}{+/};
-
-  my $padding;
-
-  # Add padding
-  if ($padding = (length($v) % 4)) {
-    $v .= chr(61) x (4 - $padding);
-  };
-
-  return decode_base64($v);
-};
-
-
 1;
 
 
@@ -712,7 +718,8 @@ or by attributes.
 If no C<n> attribute is given and L<Math::Prime::Util>
 and L<Math::Random::Secure> are installed, a new key will be generated.
 In case no C<size> attribute is given, the default key size
-for generation is 512 bits.
+for generation is 512 bits, which is also the minimum size.
+The maximum size is 2048 bits.
 
 
 =head2 sign
@@ -751,7 +758,6 @@ Returns a C<true> value on success and C<false> otherwise.
 
 Returns the public key as a string in
 L<compact notation|http://salmon-protocol.googlecode.com/svn/trunk/draft-panzer-magicsig-01.html#anchor13>.
-
 If a C<true> value is passed to the method,
 the full key (including the private exponent if existing)
 is returned.
@@ -770,7 +776,7 @@ Encodes a string as base-64 with URL safe characters.
 A second parameter indicates, if trailing equal signs
 are wanted. The default is C<true>.
 This differs from
-L<encode_base64 in MIME::Base64|MIME::Base64/"encode_base64">.
+L<MIME::Base64::encode_base64|MIME::Base64/"encode_base64">.
 The function can be exported.
 
 
@@ -792,7 +798,6 @@ L<Digest::SHA>,
 L<Exporter>,
 L<Math::BigInt>,
 L<MIME::Base64>.
-
 L<Math::Prime::Util> and
 L<Math::Random::Secure> are necessary for key generation only.
 
@@ -811,7 +816,8 @@ compatible with other implementations!
 
 L<Crypt::MagicSignatures::Envelope>,
 L<Crypt::RSA::DataFormat>,
-L<https://github.com/sivy/Salmon>.
+L<https://github.com/sivy/Salmon>,
+L<Mojo::Util::secure_compare|Mojo::Util/"secure_compare">.
 
 
 =head1 AVAILABILITY
