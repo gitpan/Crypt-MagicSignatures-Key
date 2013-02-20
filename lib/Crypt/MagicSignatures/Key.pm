@@ -8,6 +8,8 @@ use v5.10.1;
 
 our @CARP_NOT;
 
+our $VERSION = '0.07';
+
 use Digest::SHA qw/sha256 sha256_hex/;
 use MIME::Base64 qw(decode_base64 encode_base64);
 
@@ -18,22 +20,25 @@ use Math::BigInt try => 'GMP,Pari';
 use Exporter 'import';
 our @EXPORT_OK = qw(b64url_encode b64url_decode);
 
-our $VERSION = '0.06';
-our $GENERATOR;
+# Define constants
+use constant {
 
-# Maximum number of tests for random prime generation
-use constant MAX_ROUNDS => 100;
+  # Maximum number of tests for random prime generation
+  MAX_ROUNDS => 100,
 
-# Range of valid key sizes
-use constant MIN_BITS => 512;
-use constant MAX_BITS => 2048;
+  # Range of valid key sizes
+  MIN_BITS   => 512,
+  MAX_BITS   => 2048,
 
-# Maximum number length for i2osp and os2ip
-use constant NUM_LENGTH => 30_000;
+  # Maximum number length for i2osp and os2ip
+  NUM_LENGTH => 30_000
+};
 
 # Primitives for Math::Prime::Util
 sub random_nbit_prime;
 sub prime_set_config;
+
+our $GENERATOR;
 
 # Load Math::Prime::Util and Math::Random::Secure
 BEGIN {
@@ -128,7 +133,9 @@ sub new {
       my $size = $param{size} || MIN_BITS;
 
       # Key size is too short or impractical
-      return undef if $size < MIN_BITS || $size > MAX_BITS || $size % 2;
+      if ($size < MIN_BITS || $size > MAX_BITS || $size % 2) {
+	carp "Key size $size is invalid" and return;
+      };
 
       # Public exponent
       my $e = $param{e};
@@ -565,7 +572,7 @@ sub _b64url_to_hex {
 
   # Decode and convert b64url encoded hex number
   return Math::BigInt->new(
-    '0x' . unpack( "H*", b64url_decode( shift ) )
+    '0x' . unpack( 'H*', b64url_decode( shift ) )
   );
 };
 
@@ -582,7 +589,7 @@ sub _hex_to_b64url {
   $num = ( ( ( length $num ) % 2 ) > 0 ) ? '0' . $num : $num;
 
   # Encode number using b64url
-  return b64url_encode( pack( "H*", $num ) );
+  return b64url_encode( pack( 'H*', $num ) );
 };
 
 
@@ -596,6 +603,7 @@ __END__
 =head1 NAME
 
 Crypt::MagicSignatures::Key - MagicKeys for the Salmon Protocol
+
 
 =head1 SYNOPSIS
 
@@ -762,13 +770,15 @@ The function can be exported.
 =head1 DEPENDENCIES
 
 For signing and verification there are no dependencies
-other than Perl 5.10 and core modules.
+other than Perl 5.10.1 and core modules.
 For key generation L<Math::Prime::Util> and
 L<Math::Random::Secure> are necessary.
 
 Either L<Math::BigInt::GMP> (preferred) or L<Math::BigInt::Pari>
-are strongly recommended for speed,
-as well as L<Math::Random::ISAAC::XS>.
+are strongly recommended for speed improvement
+(signing and verification) as well as
+L<Math::Prime::Util::GMP> and L<Math::Random::ISAAC::XS>
+(key generation).
 
 
 =head1 KNOWN BUGS AND LIMITATIONS
