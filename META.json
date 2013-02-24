@@ -37,8 +37,7 @@
             "Exporter" : "0",
             "MIME::Base64" : "0",
             "Math::BigInt" : "0",
-            "Math::Prime::Util" : "0.17",
-            "Math::Random::Secure" : "0.05",
+            "Math::Prime::Util" : "0.21",
             "Test::More" : "0",
             "perl" : "5.010001"
          }
@@ -53,5 +52,5 @@
          "url" : "https://github.com/Akron/Crypt-MagicSignatures-Key"
       }
    },
-   "version" : "0.07"
+   "version" : "0.08"
 }

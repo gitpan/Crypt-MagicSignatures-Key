@@ -8,7 +8,11 @@ use v5.10.1;
 
 our @CARP_NOT;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
+
+# Maximum number of tests for random prime generation = 100
+# Range of valid key sizes = 512 - 2048
+# Maximum number length for i2osp and os2ip = 30000
 
 use Digest::SHA qw/sha256 sha256_hex/;
 use MIME::Base64 qw(decode_base64 encode_base64);
@@ -20,36 +24,15 @@ use Math::BigInt try => 'GMP,Pari';
 use Exporter 'import';
 our @EXPORT_OK = qw(b64url_encode b64url_decode);
 
-# Define constants
-use constant {
-
-  # Maximum number of tests for random prime generation
-  MAX_ROUNDS => 100,
-
-  # Range of valid key sizes
-  MIN_BITS   => 512,
-  MAX_BITS   => 2048,
-
-  # Maximum number length for i2osp and os2ip
-  NUM_LENGTH => 30_000
-};
-
 # Primitives for Math::Prime::Util
 sub random_nbit_prime;
-sub prime_set_config;
 
 our $GENERATOR;
 
 # Load Math::Prime::Util and Math::Random::Secure
 BEGIN {
-  if (eval
-	q{use Math::Prime::Util qw/prime_set_config random_nbit_prime/;
-	  use Math::Random::Secure;
-	  1;}) {
+  if (eval "use Math::Prime::Util qw/random_nbit_prime/; 1;") {
     our $GENERATOR = 1;
-
-    # Configure random prime number search
-    prime_set_config(irand => \&Math::Random::Secure::irand);
   };
 };
 
@@ -125,16 +108,24 @@ sub new {
 
       # Generator not installed
       unless ($GENERATOR) {
-	carp 'No Math::Prime::Util or Math::Random::Secure installed';
-	return;
+	carp 'No Math::Prime::Util installed' and return;
       };
 
       # Define key size
-      my $size = $param{size} || MIN_BITS;
+      my $size = $param{size};
 
-      # Key size is too short or impractical
-      if ($size < MIN_BITS || $size > MAX_BITS || $size % 2) {
-	carp "Key size $size is invalid" and return;
+      # Size is given
+      if ($size) {
+
+	# Key size is too short or impractical
+	if ($size < 512 || $size > 2048 || $size % 2) {
+	  carp "Key size $size is invalid" and return;
+	};
+      }
+
+      # Default size
+      else {
+	$size = 512;
       };
 
       # Public exponent
@@ -144,7 +135,7 @@ sub new {
       my $psize = int( $size / 2 );
 
       my $n;
-      my $m = MAX_ROUNDS;
+      my $m = 100; # Maximum number of rounds
 
       my ($p, $q);
 
@@ -155,6 +146,7 @@ sub new {
       while ($m > 0) {
 
 	# Fetch random primes p and q
+	# Uses Bytes::Random::Secure by default
 	$p = random_nbit_prime($psize);
 	$q = random_nbit_prime($psize);
 
@@ -207,7 +199,7 @@ sub new {
   $self->{size} = _bitsize( $self->n );
 
   # Size is to small
-  if ($self->{size} < 512 || $self->{size} > MAX_BITS)  {
+  if ($self->{size} < 512 || $self->{size} > 2048)  {
     carp 'Keysize is out of range' and return;
   };
 
@@ -231,7 +223,7 @@ sub n {
   my $n = Math::BigInt->new( shift );
 
   # n is not a number
-  carp 'n is not a number' and return undef if $n->is_nan;
+  carp 'n is not a number' and return if $n->is_nan;
 
   # Delete precalculated emLen and size
   delete $self->{emLen};
@@ -254,7 +246,7 @@ sub e {
   my $e = Math::BigInt->new( shift );
 
   # e is not a number
-  carp 'e is not a number' and return undef if $e->is_nan;
+  carp 'e is not a number' and return if $e->is_nan;
 
   return $self->{e} = $e;
 };
@@ -273,7 +265,7 @@ sub d {
   my $d = Math::BigInt->new( shift );
 
   # d is not a number
-  carp 'd is not a number' and return undef if $d->is_nan;
+  carp 'd is not a number' and return if $d->is_nan;
 
   return $self->{d} = $d;
 };
@@ -282,7 +274,7 @@ sub d {
 # Get key size
 sub size {
   my $self = shift;
-  return undef unless $self->n;
+  return unless $self->n;
   return $self->{size} // ($self->{size} = _bitsize($self->n));
 };
 
@@ -344,14 +336,14 @@ sub to_string {
 
   my $mkey = join('.', @array);
 
-  # $mkey =~ s/=+//g;
+  # Specification is not clear about $mkey =~ s/=+//g;
 
   $mkey;
 };
 
 
 # Returns the b64 urlsafe encoding of a string
-sub b64url_encode ($;$) {
+sub b64url_encode {
   return '' unless $_[0];
 
   my $v = $_[0];
@@ -368,7 +360,7 @@ sub b64url_encode ($;$) {
 
 
 # Returns the b64 urlsafe decoded string
-sub b64url_decode ($) {
+sub b64url_decode {
   my $v = shift;
   return '' unless $v;
 
@@ -497,7 +489,7 @@ sub _os2ip {
   my $os = shift;
 
   my $l = length($os);
-  return undef if $l > NUM_LENGTH;
+  return if $l > 30_000;
 
   my $base = Math::BigInt->new(256);
   my $result = Math::BigInt->bzero;
@@ -519,7 +511,7 @@ sub _i2osp {
   my $num = Math::BigInt->new(shift);
 
   return if $num->is_nan;
-  return if $num->length > NUM_LENGTH;
+  return if $num->length > 30_000;
 
   my $l = shift || 0;
   my $base = Math::BigInt->new(256);
@@ -693,7 +685,7 @@ L<compact notation|http://salmon-protocol.googlecode.com/svn/trunk/draft-panzer-
 or by attributes.
 
 If no C<n> attribute is given and L<Math::Prime::Util>
-and L<Math::Random::Secure> are installed, a new key will be generated.
+is installed, a new key will be generated.
 In case no C<size> attribute is given, the default key size
 for generation is 512 bits, which is also the minimum size.
 The maximum size is 2048 bits.
@@ -771,8 +763,7 @@ The function can be exported.
 
 For signing and verification there are no dependencies
 other than Perl 5.10.1 and core modules.
-For key generation L<Math::Prime::Util> and
-L<Math::Random::Secure> are necessary.
+For key generation L<Math::Prime::Util> is necessary.
 
 Either L<Math::BigInt::GMP> (preferred) or L<Math::BigInt::Pari>
 are strongly recommended for speed improvement
@@ -791,6 +782,7 @@ compatible with other implementations!
 
 L<Crypt::MagicSignatures::Envelope>,
 L<Crypt::RSA::DataFormat>,
+L<Alt::Crypt::RSA::BigInt> (which wasn't available when I started this module),
 L<https://github.com/sivy/Salmon>.
 
 
