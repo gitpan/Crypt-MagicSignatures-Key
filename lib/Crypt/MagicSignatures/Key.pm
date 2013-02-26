@@ -1,8 +1,7 @@
 package Crypt::MagicSignatures::Key;
 use strict;
 use warnings;
-use bytes;
-use Carp qw/carp croak/;
+use Carp 'carp';
 
 use v5.10.1;
 
@@ -31,7 +30,7 @@ our $GENERATOR;
 
 # Load Math::Prime::Util and Math::Random::Secure
 BEGIN {
-  if (eval "use Math::Prime::Util qw/random_nbit_prime/; 1;") {
+  if (eval "use Math::Prime::Util 0.21 qw/random_nbit_prime/; 1;") {
     our $GENERATOR = 1;
   };
 };
@@ -762,8 +761,8 @@ The function can be exported.
 =head1 DEPENDENCIES
 
 For signing and verification there are no dependencies
-other than Perl 5.10.1 and core modules.
-For key generation L<Math::Prime::Util> is necessary.
+other than Perl v5.10.1 and core modules.
+For key generation L<Math::Prime::Util> v0.21 is necessary.
 
 Either L<Math::BigInt::GMP> (preferred) or L<Math::BigInt::Pari>
 are strongly recommended for speed improvement
