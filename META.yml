@@ -32,4 +32,4 @@ requires:
 resources:
   license: http://www.opensource.org/licenses/artistic-license-2.0
   repository: https://github.com/Akron/Crypt-MagicSignatures-Key
-version: 0.09
+version: 0.10
