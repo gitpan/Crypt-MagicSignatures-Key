@@ -4,7 +4,7 @@
       "Nils Diewald"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.62, CPAN::Meta::Converter version 2.120921",
+   "generated_by" : "ExtUtils::MakeMaker version 6.82, CPAN::Meta::Converter version 2.120351",
    "license" : [
       "perl_5"
    ],
@@ -32,7 +32,7 @@
       },
       "runtime" : {
          "recommends" : {
-            "Math::BigInt::GMP" : "0",
+            "Math::BigInt::GMP" : "1.37",
             "Math::Prime::Util::GMP" : "0.06",
             "Math::Random::ISAAC::XS" : "1.004"
          },
@@ -56,5 +56,5 @@
          "url" : "https://github.com/Akron/Crypt-MagicSignatures-Key"
       }
    },
-   "version" : "0.10"
+   "version" : "0.11"
 }
