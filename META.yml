@@ -3,33 +3,33 @@ abstract: 'MagicKeys for the Salmon Protocol'
 author:
   - 'Nils Diewald'
 build_requires:
-  Test::More: 0
+  Test::More: '0'
 configure_requires:
-  ExtUtils::MakeMaker: 0
+  ExtUtils::MakeMaker: '0'
 dynamic_config: 1
 generated_by: 'ExtUtils::MakeMaker version 6.82, CPAN::Meta::Converter version 2.120351'
-license: perl
+license: artistic_2
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
-  version: 1.4
+  version: '1.4'
 name: Crypt-MagicSignatures-Key
 no_index:
   directory:
     - t
     - inc
 recommends:
-  Math::BigInt::GMP: 1.37
-  Math::Prime::Util::GMP: 0.06
-  Math::Random::ISAAC::XS: 1.004
+  Math::BigInt::GMP: '1.37'
+  Math::Prime::Util::GMP: '0.06'
+  Math::Random::ISAAC::XS: '1.004'
 requires:
-  Carp: 0
-  Digest::SHA: 0
-  Exporter: 0
-  MIME::Base64: 0
-  Math::BigInt: 0
-  Math::Prime::Util: 0.21
-  perl: 5.010001
+  Carp: '0'
+  Digest::SHA: '0'
+  Exporter: '0'
+  MIME::Base64: '0'
+  Math::BigInt: '0'
+  Math::Prime::Util: '0.21'
+  perl: '5.010001'
 resources:
   license: http://www.opensource.org/licenses/artistic-license-2.0
   repository: https://github.com/Akron/Crypt-MagicSignatures-Key
-version: 0.12
+version: '0.13'
